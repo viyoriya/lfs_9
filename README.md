@@ -5,7 +5,7 @@ Linux kernel 5.3.2 + runit + xorg + dwm
 All the scripts are copied from  https://github.com/emmett1/lfs-scripts
 I just updated to latest version of all the packages/kernel 5.3.2 and few fixes and modifications.
 
-1. I did use runit as init system (no sysvint and systemd) and modify the scripts for runit.
+1. I did use runit as init system (no sysvint or systemd) and modify the scripts for runit.
 
 Used Solus as hostsystem so please install the base packages using below command
 
