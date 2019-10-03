@@ -42,7 +42,9 @@ After installation
 4. end of lfs install you need to provide root password else you need to update it on first login.
 5. create user and add the user in wheel group 
 6. I did add screen, byobu and tmux once everything good download and install dwm its fast and easy setup
-7. Added ncdu,ranger,vim,nano all are cli based. (its very minimal no GUI)
+7. Added ncdu,ranger,vim,nano all are cli based. (its very minimal no GUI).
+
+It's just an bit of experience, knowledge and keep you busy for a week :)
 
 # lfs-scripts
 
