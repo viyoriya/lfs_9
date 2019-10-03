@@ -3,11 +3,11 @@
 Linux kernel 5.3.2 + runit + xorg + dwm
 
 All the scripts are copied from  https://github.com/emmett1/lfs-scripts
-I just updated to latest version of all the packages/kernel 5.3.2 and few fixes and versions.
+I just updated to latest version of all the packages/kernel 5.3.2 and few fixes and modifications.
 
-1. I am using runit as init system (no sysvint and systemd) I did modify the scripts for runit.
+1. I did use runit as init system (no sysvint and systemd) and modify the scripts for runit.
 
-I used Solus as hostsystem so install the base packages using below command
+Used Solus as hostsystem so please install the base packages using below command
 
 2. sudo eopkg install -c system.devel
 3. warning
@@ -27,13 +27,13 @@ I used Solus as hostsystem so install the base packages using below command
 Observations
 
 1. Perl package gives error so install latest perl in hostsystem and run the script.
-2. If you need to reinstall any package or workaround anytime then remove the entry in db file 
+2. If you need to reinstall any package or workaround then remove the package entry in db file.
     location ==> $LFS/var/lib/pkg/db 
 3. if you need any additional driver you need to reconfigure the kernel...you can find those details in
    google :)
-4. for installing gnome,xfce,.....please refer this website http://www.linuxfromscratch.org/blfs
+4. for installing gnome,xfce,etc etc.....please refer to this website http://www.linuxfromscratch.org/blfs
 
-start installing from 01-* and script 05-* is optional.
+start installing from 01-* script and script 05-* is optional.
 
 
 # lfs-scripts
