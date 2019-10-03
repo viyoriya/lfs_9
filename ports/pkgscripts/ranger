@@ -1,0 +1,32 @@
+#!/bin/bash
+
+set -e
+
+. /etc/pkg/pkg.conf
+. /var/lib/pkg/functions
+
+name=$(basename $0)
+version=$RANGER_VER
+
+url=https://github.com/ranger/ranger/archive/v$version.tar.gz
+
+fetch $url
+
+rm -fr $WORK_DIR/$name-$version
+tar -xvf $SOURCE_DIR/$(basename $url) -C $WORK_DIR
+
+cd $WORK_DIR/$name-$version
+{ time \
+   {
+	#make install
+	python3 setup.py install --optimize=1 
+   }
+} 2>&1 | tee -a $LOG_DIR/$name-$version.log
+
+if [ $PIPESTATUS -ne 0 ]; then exit 1; fi;
+
+rm -fr $WORK_DIR/$name-$version
+
+registerpkg $name $version
+
+exit 0

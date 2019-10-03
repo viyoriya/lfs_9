@@ -1,0 +1,34 @@
+#!/bin/bash
+
+set -e
+
+. /etc/pkg/pkg.conf
+. /var/lib/pkg/functions
+
+name=$(basename $0)
+version=1.0
+
+url=https://github.com/inthecloud247/runit-for-lfs/archive/master.tar.gz
+
+fetch $url
+
+rm -fr $WORK_DIR/runit-for-lfs-master
+tar -xvf  $SOURCE_DIR/master.tar.gz -C $WORK_DIR
+
+cd $WORK_DIR/runit-for-lfs-master/lfs-servicescripts
+{ time \
+   {
+	make
+	make install
+	sed -i '/setclock\ start/ s/^/#/' /etc/udev/rules.d/55-lfs.rules
+	#post_install_reboot
+   }
+} 2>&1 | tee -a $LOG_DIR/runit-for-lfs-masterlog
+
+if [ $PIPESTATUS -ne 0 ]; then exit 1; fi;
+
+rm -fr $WORK_DIR/runit-for-lfs-master
+
+registerpkg runit-for-lfs-master $version
+
+exit 0

@@ -1,0 +1,58 @@
+#!/bin/bash
+
+set -e
+
+. /etc/pkg/pkg.conf
+. /var/lib/pkg/functions
+
+name=$(basename $0)
+version=$XF86_VIDEO_INTEL_VER
+
+url=http://anduin.linuxfromscratch.org/BLFS/xf86-video-intel/xf86-video-intel-$version.tar.xz
+fetch $url
+
+ rm -fr $WORK_DIR/$name-$version
+ tar -xvf $SOURCE_DIR/$(basename $url) -C $WORK_DIR
+
+cd $WORK_DIR/$name-$version
+{ time \
+   {
+
+   	export XORG_PREFIX="/usr"
+	export XORG_CONFIG="--prefix=$XORG_PREFIX --sysconfdir=/etc \
+    --localstatedir=/var --disable-static"
+
+	./autogen.sh $XORG_CONFIG     \
+	            --enable-kms-only \
+	            --enable-uxa      \
+	            --mandir=/usr/share/man 
+	make
+	make install
+	      
+	mv -v /usr/share/man/man4/intel-virtual-output.4 \
+	      /usr/share/man/man1/intel-virtual-output.1 
+	      
+	sed -i '/\.TH/s/4/1/' /usr/share/man/man1/intel-virtual-output.1
+
+	cat >> /etc/X11/xorg.conf.d/20-intel.conf << "EOF"
+Section   "Device"
+        Identifier "Intel Graphics"
+        Driver     "intel"
+        #Option     "DRI" "2"            # DRI3 is default
+        #Option     "AccelMethod"  "sna" # default
+        #Option     "AccelMethod"  "uxa" # fallback
+EndSection
+EOF
+
+
+
+   }
+} 2>&1 | tee -a $LOG_DIR/$(basename $0).log
+
+if [ $PIPESTATUS -ne 0 ]; then exit 1; fi;
+
+rm -fr $WORK_DIR/$name-$version
+
+registerpkg $(basename $0) $version
+
+exit 0

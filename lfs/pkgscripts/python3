@@ -1,0 +1,47 @@
+#!/bin/bash
+
+set -e
+
+. /etc/pkg/pkg.conf
+. /var/lib/pkg/functions
+
+name=Python
+version=$PYTHON_VER
+
+url=https://www.python.org/ftp/python/$version/Python-$version.tar.xz
+
+fetch $url
+
+rm -fr $WORK_DIR/$name-$version
+tar -xvf $SOURCE_DIR/$(basename $url) -C $WORK_DIR
+
+cd $WORK_DIR/$name-$version
+{ time \
+   {
+
+	./configure --prefix=/usr       \
+		    --enable-shared     \
+		    --with-system-expat \
+		    --with-system-ffi   \
+		    --with-ensurepip=yes
+
+ #for m in _struct binascii unicodedata _posixsubprocess math pyexpat _md5 _sha1 _sha256 _sha512 select _random _socket zlib fcntl; do 
+ #   sed -i "s/^#\(${m}\)/\1/" Modules/Setup; 
+ #done
+
+
+	make
+	make install
+	chmod -v 755 /usr/lib/libpython3.7m.so
+	chmod -v 755 /usr/lib/libpython3.so
+	ln -sfv pip3.7 /usr/bin/pip3
+   }
+} 2>&1 | tee -a $LOG_DIR/$(basename $0).log
+
+if [ $PIPESTATUS -ne 0 ]; then exit 1; fi;
+
+rm -fr $WORK_DIR/$name-$version
+
+registerpkg $(basename $0) $version
+
+exit 0

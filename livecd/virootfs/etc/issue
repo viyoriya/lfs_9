@@ -1,0 +1,15 @@
+Linux From Scratch 9 \r (\l)
+
+login:
+    root : root
+
+networking (wired):
+    sed "s/eth0/<wired interface>/" -i /etc/sysconfig/ifconfig.wired
+    ifup wired
+
+networking (wifi):
+    sed "s/wlan0/<wifi interface>/" -i /etc/sysconfig/ifconfig.wifi
+    ifup wifi
+
+project page:
+    https://github.com/viyoriya/lfs-scripts

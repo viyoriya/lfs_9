@@ -1,0 +1,41 @@
+#!/bin/bash
+
+set -e
+
+. /etc/pkg/pkg.conf
+. /var/lib/pkg/functions
+
+name=$(basename $0)
+version=$LIB_EPOXY_VER
+
+url=https://github.com/anholt/libepoxy/releases/download/1.5.3/libepoxy-$version.tar.xz
+fetch $url
+
+ rm -fr $WORK_DIR/$name-$version
+ tar -xvf $SOURCE_DIR/$(basename $url) -C $WORK_DIR
+
+cd $WORK_DIR/$name-$version
+{ time \
+   {
+
+   	export XORG_PREFIX="/usr"
+	export XORG_CONFIG="--prefix=$XORG_PREFIX --sysconfdir=/etc \
+    --localstatedir=/var --disable-static"
+
+	mkdir build &&
+	cd build &&
+
+	meson --prefix=/usr .. 
+	ninja
+	ninja install
+
+   }
+} 2>&1 | tee -a $LOG_DIR/$(basename $0).log
+
+if [ $PIPESTATUS -ne 0 ]; then exit 1; fi;
+
+rm -fr $WORK_DIR/$name-$version
+
+registerpkg $(basename $0) $version
+
+exit 0

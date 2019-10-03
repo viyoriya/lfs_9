@@ -1,0 +1,144 @@
+#!/bin/bash
+
+set -e
+
+. /etc/pkg/pkg.conf
+. /var/lib/pkg/functions
+
+name=glibc
+version=$GLIBC_VER
+
+url=http://ftp.gnu.org/gnu/glibc/glibc-$version.tar.xz
+
+fetch $url
+fetch http://www.linuxfromscratch.org/patches/lfs/$VERSION/glibc-$GLIBC_VER-fhs-1.patch
+fetch https://www.iana.org/time-zones/repository/releases/tzdata$TZ_VER.tar.gz
+
+rm -fr $WORK_DIR/$name-$version
+tar -xvf $SOURCE_DIR/$name-$version.tar.xz -C $WORK_DIR
+
+cd $WORK_DIR/$name-$version
+{ time \
+   {
+	
+	patch -Np1 -i $SOURCE_DIR/glibc-$GLIBC_VER-fhs-1.patch
+	
+	sed -i '/asm.socket.h/a# include <linux/sockios.h>' \
+   				sysdeps/unix/sysv/linux/bits/socket.h
+	
+	ln -sfv /tools/lib/gcc /usr/lib
+
+	case $(uname -m) in
+	    i?86)   ln -sfv ld-linux.so.2 /lib/ld-lsb.so.3
+	    ;;
+	    x86_64) ln -sfv ../lib/ld-linux-x86-64.so.2 /lib64
+	            ln -sfv ../lib/ld-linux-x86-64.so.2 /lib64/ld-lsb-x86-64.so.3
+	    ;;
+	esac
+
+	
+	rm -f /usr/include/limits.h
+	
+	mkdir -v build
+	cd       build
+	
+	
+	CC="gcc -ffile-prefix-map=/tools=/usr" \
+		../configure --prefix=/usr                  \
+             --disable-werror                       \
+             --enable-kernel=3.2                    \
+             --enable-stack-protector=strong        \
+             --with-headers=/usr/include            \
+             libc_cv_slibdir=/lib
+	make
+	touch /etc/ld.so.conf
+	sed '/test-installation/s@$(PERL)@echo not running@' -i ../Makefile
+	make install
+	cp -v ../nscd/nscd.conf /etc/nscd.conf
+	mkdir -pv /var/cache/nscd
+	mkdir -pv /usr/lib/locale
+	make localedata/install-locales
+	
+	cat > /etc/nsswitch.conf << "EOF"
+# Begin /etc/nsswitch.conf
+
+passwd: files
+group: files
+shadow: files
+
+hosts: files dns
+networks: files
+
+protocols: files
+services: files
+ethers: files
+rpc: files
+
+# End /etc/nsswitch.conf
+EOF
+
+	tar -xf $SOURCE_DIR/tzdata$TZ_VER.tar.gz
+
+ZONEINFO=/usr/share/zoneinfo
+mkdir -pv $ZONEINFO/{posix,right}
+
+for tz in etcetera southamerica northamerica europe africa antarctica  \
+          asia australasia backward pacificnew systemv; do
+    zic -L /dev/null   -d $ZONEINFO        ${tz}
+    zic -L /dev/null   -d $ZONEINFO/posix -y  ${tz}
+    zic -L leapseconds -d $ZONEINFO/right -y  ${tz}
+done
+
+cp -v zone.tab zone1970.tab iso3166.tab $ZONEINFO
+zic -d $ZONEINFO -p America/New_York
+unset ZONEINFO
+
+	ln -svf /usr/share/zoneinfo/UTC /etc/localtime
+	
+	cat > /etc/ld.so.conf << "EOF"
+# Begin /etc/ld.so.conf
+/usr/local/lib
+/opt/lib
+
+EOF
+
+cat >> /etc/ld.so.conf << "EOF"
+# Add an include directory
+include /etc/ld.so.conf.d/*.conf
+
+EOF
+mkdir -pv /etc/ld.so.conf.d
+
+if [ ! -f /tools/bin/ld-old ]; then
+	mv -v /tools/bin/{ld,ld-old}
+	mv -v /tools/$(uname -m)-pc-linux-gnu/bin/{ld,ld-old}
+	mv -v /tools/bin/{ld-new,ld}
+	ln -sv /tools/bin/ld /tools/$(uname -m)-pc-linux-gnu/bin/ld
+
+	gcc -dumpspecs | sed -e 's@/tools@@g'                   \
+		-e '/\*startfile_prefix_spec:/{n;s@.*@/usr/lib/ @}' \
+		-e '/\*cpp:/{n;s@$@ -isystem /usr/include@}' >      \
+		`dirname $(gcc --print-libgcc-file-name)`/specs
+
+	echo 'int main(){}' > dummy.c
+	cc dummy.c -v -Wl,--verbose &> dummy.log
+	readelf -l a.out | grep ': /lib'
+
+	grep -o '/usr/lib.*/crt[1in].*succeeded' dummy.log
+	grep -B1 '^ /usr/include' dummy.log
+	grep 'SEARCH.*/usr/lib' dummy.log |sed 's|; |\n|g'
+	grep "/lib.*/libc.so.6 " dummy.log
+	grep found dummy.log
+	rm -v dummy.c a.out dummy.log
+fi
+
+   }
+} 2>&1 | tee -a $LOG_DIR/$(basename $0).log
+
+if [ $PIPESTATUS -ne 0 ]; then exit 1; fi;
+
+rm -fr $WORK_DIR/$name-$version
+
+registerpkg $(basename $0) $version
+
+exit 0

@@ -1,0 +1,47 @@
+#!/bin/bash
+
+set -e
+
+. /etc/pkg/pkg.conf
+. /var/lib/pkg/functions
+
+name=$(basename $0)
+version=$LINUX_VER
+
+url=https://cdn.kernel.org/pub/linux/kernel/$LINUX_ROOT_VER/linux-$version.tar.xz
+
+fetch $url
+
+cp /usr/pkgscripts/config-$KERNEL_CONFIG_FILE_VER $SOURCE_DIR/
+
+rm -fr /usr/src/$name-$version-old
+[ -d /usr/src/$name-$version ] && mv /usr/src/$name-$version /usr/src/$name-$version-old
+tar -xvf $SOURCE_DIR/$(basename $url) -C /usr/src
+ln -svf /usr/src/$name-$version /usr/src/linux
+
+cd /usr/src/$name-$version
+{ time \
+   {
+	make mrproper
+	cp $SOURCE_DIR/config-$KERNEL_CONFIG_FILE_VER .config 
+
+	make -j$(nproc)
+	make modules_install
+	cp -iv arch/x86/boot/bzImage /boot/vmlinuz-$version
+	cp -iv System.map /boot/System.map-$version
+	cp -iv .config /boot/config-$version
+
+	if [ $(type -p mkinitramfs) ]; then
+		kernver=$(file /boot/vmlinuz-$version  | cut -d ' ' -f9)
+		mkinitramfs -k $kernver -o /boot/initrd-$version.img
+	fi
+   }
+} 2>&1 | tee -a $LOG_DIR/$(basename $0).log
+
+if [ $PIPESTATUS -ne 0 ]; then exit 1; fi;
+
+#rm -fr $WORK_DIR/$name-$version
+
+registerpkg $(basename $0) $version
+
+exit 0

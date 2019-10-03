@@ -1,0 +1,40 @@
+#!/bin/bash
+
+set -e
+
+. /etc/pkg/pkg.conf
+. /var/lib/pkg/functions
+
+name=git
+version=$GIT_VER
+
+
+url=https://mirrors.edge.kernel.org/pub/software/scm/$name/$name-$version.tar.gz
+
+fetch $url
+
+rm -fr $WORK_DIR/$name-$version
+tar -xvf $SOURCE_DIR/$name-$version.tar.gz -C $WORK_DIR
+
+cd $WORK_DIR/$name-$version
+{ time \
+   {
+
+   	rm -f src/fcobjshash.h
+   	./configure --prefix=/usr        \
+            --sysconfdir=/etc    \
+            --localstatedir=/var \
+            --disable-docs       \
+            --docdir=/usr/share/doc/fontconfig-2.13.1 &&
+	make
+	make install
+   }
+} 2>&1 | tee -a $LOG_DIR/$(basename $0).log
+
+if [ $PIPESTATUS -ne 0 ]; then exit 1; fi;
+
+rm -fr $WORK_DIR/$name-$version
+
+registerpkg $(basename $0) $version
+
+exit 0

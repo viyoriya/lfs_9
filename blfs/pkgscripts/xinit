@@ -1,0 +1,41 @@
+#!/bin/bash
+
+set -e
+
+. /etc/pkg/pkg.conf
+. /var/lib/pkg/functions
+
+name=$(basename $0)
+version=$XINIT_VER
+
+url=https://www.x.org/pub/individual/app/xinit-$version.tar.bz2
+fetch $url
+
+ rm -fr $WORK_DIR/$name-$version
+ tar -xvf $SOURCE_DIR/$(basename $url) -C $WORK_DIR
+
+cd $WORK_DIR/$name-$version
+{ time \
+   {
+
+   	export XORG_PREFIX="/usr"
+	export XORG_CONFIG="--prefix=$XORG_PREFIX --sysconfdir=/etc \
+    --localstatedir=/var --disable-static"
+
+	./configure $XORG_CONFIG --with-xinitdir=/etc/X11/app-defaults &&
+	make
+	make install
+	ldconfig
+	chmod u+s $XORG_PREFIX/libexec/Xorg
+	sed -e '/$serverargs $vtarg/ s/serverargs/: #&/' $XORG_PREFIX/bin/startx
+
+   }
+} 2>&1 | tee -a $LOG_DIR/$(basename $0).log
+
+if [ $PIPESTATUS -ne 0 ]; then exit 1; fi;
+
+rm -fr $WORK_DIR/$name-$version
+
+registerpkg $(basename $0) $version
+
+exit 0

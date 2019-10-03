@@ -1,0 +1,44 @@
+#!/bin/bash -e
+
+if [ $(id -u) = 0 ]; then
+	echo "$0 script need to run as regular user!"
+	exit 1
+fi
+
+source $(dirname $0)/toolchain/functions
+
+if [ "$1" != "fetch" ]; then
+	if [ ! -d $LFS/tools ]; then
+		sudo mkdir -pv $LFS/tools
+	fi
+
+	if [ ! -w $LFS ]; then
+		sudo chown -Rv $USER:$USER $LFS
+	fi
+
+	if [ ! -L /tools ] || [ $(realpath /tools) != $LFS/tools ]; then
+		sudo ln -svf $LFS/tools /
+	fi
+fi
+
+for script in $(ls toolchain | grep ^[0-9]); do
+	if [ "$1" = "fetch" ]; then
+		$(dirname $0)/toolchain/$script "$1"
+	elif [ -f /tools/"$script" ]; then
+		echo "--- $script skipped ---"
+	else
+		echo "*** $script ***"
+		$(dirname $0)/toolchain/$script
+		echo; echo "*** $script done ***"; echo
+		[ "$1" = $(echo $script | cut -d - -f1) ] && exit
+	fi
+done
+
+[ "$1" = "fetch" ] && exit 0
+
+sudo chown -Rv 0:0 $LFS
+
+echo
+echo "**************************************************"
+echo "*********    Toolchain build complete    *********"
+echo "**************************************************"

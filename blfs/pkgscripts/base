@@ -1,0 +1,33 @@
+#!/bin/bash
+
+set -e
+
+. /etc/pkg/pkg.conf
+. /var/lib/pkg/functions
+
+name=base
+version=1.0
+
+{ time \
+   {
+
+   	export XORG_PREFIX="/usr"
+	export XORG_CONFIG="--prefix=$XORG_PREFIX --sysconfdir=/etc \
+    --localstatedir=/var --disable-static"
+
+cat > /etc/profile.d/xorg.sh << EOF
+XORG_PREFIX="$XORG_PREFIX"
+XORG_CONFIG="--prefix=\$XORG_PREFIX --sysconfdir=/etc --localstatedir=/var --disable-static"
+export XORG_PREFIX XORG_CONFIG
+EOF
+
+	chmod 644 /etc/profile.d/xorg.sh
+
+   }
+} 2>&1 | tee -a $LOG_DIR/base.log
+
+if [ $PIPESTATUS -ne 0 ]; then exit 1; fi;
+
+registerpkg base $version
+
+exit 0

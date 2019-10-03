@@ -1,0 +1,61 @@
+#!/bin/bash
+
+set -e
+
+. /etc/pkg/pkg.conf
+. /var/lib/pkg/functions
+
+name=$(basename $0)
+version=$MESA_VER
+
+url=https://mesa.freedesktop.org/archive/mesa-$version.tar.xz
+fetch $url
+
+fetch http://www.linuxfromscratch.org/patches/blfs/$VERSION/mesa-$version-add_xdemos-1.patch 
+
+ rm -fr $WORK_DIR/$name-$version
+ tar -xvf $SOURCE_DIR/$(basename $url) -C $WORK_DIR
+
+cd $WORK_DIR/$name-$version
+{ time \
+   {
+
+	patch -Np1 -i $SOURCE_DIR/mesa-$version-add_xdemos-1.patch
+
+   	export XORG_PREFIX="/usr"
+	export XORG_CONFIG="--prefix=$XORG_PREFIX --sysconfdir=/etc \
+    --localstatedir=/var --disable-static"
+
+GALLIUM_DRV="i915,nouveau,r600,radeonsi,svga,swrast,virgl"
+DRI_DRIVERS="i965,nouveau"
+
+mkdir $WORK_DIR/$name-$version/build 
+cd    $WORK_DIR/$name-$version/build 
+
+meson --prefix=$XORG_PREFIX          \
+      -Dbuildtype=release            \
+      -Ddri-drivers=$DRI_DRIVERS     \
+      -Dgallium-drivers=$GALLIUM_DRV \
+      -Dgallium-nine=false           \
+      -Dglx=dri                      \
+      -Dosmesa=gallium               \
+      -Dvalgrind=false               \
+      ..                             
+
+unset GALLIUM_DRV DRI_DRIVERS &&
+echo "================================vj1========================================="
+ninja
+echo "================================vj2========================================="
+ninja install
+echo "================================vj3========================================="
+
+   }
+} 2>&1 | tee -a $LOG_DIR/$(basename $0).log
+
+if [ $PIPESTATUS -ne 0 ]; then exit 1; fi;
+
+rm -fr $WORK_DIR/$name-$version
+
+registerpkg $(basename $0) $version
+
+exit 0

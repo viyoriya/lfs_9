@@ -1,0 +1,36 @@
+#!/bin/bash
+
+set -e
+
+. /etc/pkg/pkg.conf
+. /var/lib/pkg/functions
+
+name=scratchpkg-master
+version=1.0
+
+url=https://github.com/venomlinux/scratchpkg/archive/master.tar.gz
+
+fetch $url
+
+
+mv $SOURCE_DIR/master.tar.gz $SOURCE_DIR/scratchpkg-master.tar.gz
+
+rm -fr $WORK_DIR/scratchpkg-master
+tar -xvf $SOURCE_DIR/scratchpkg-master.tar.gz -C $WORK_DIR
+
+cd $WORK_DIR/scratchpkg-master
+{ time \
+   {
+
+   ./INSTALL.sh
+
+   }
+} 2>&1 | tee -a $LOG_DIR/scratchpkg.log
+
+if [ $PIPESTATUS -ne 0 ]; then exit 1; fi;
+
+rm -fr $WORK_DIR/scratchpkg-master
+
+registerpkg $name $version
+
+exit 0

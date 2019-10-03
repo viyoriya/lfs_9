@@ -1,0 +1,47 @@
+#!/bin/bash -e
+
+source $(dirname $0)/functions
+source $(dirname $0)/pkgversion
+
+filename=$(echo $0 | rev | cut -d / -f1 | rev)
+
+TMP=${TMP:-/tmp/build}
+LOG=${LOG:-$(dirname $0)/log}
+SRC=${SRC:-$(dirname $0)/src}
+
+NAME=Python
+VERSION=$PYTHON_VER
+
+fetch "https://www.python.org/ftp/python/$VERSION/Python-$VERSION.tar.xz" $SRC
+
+[ "$1" = "fetch" ] && exit 0
+
+rm -fr $TMP
+mkdir -p $TMP $LOG $SRC
+
+echo $SRC/$tarballname
+
+tar xf $SRC/$tarballname -C $TMP
+
+{ time \
+   {
+
+   cd $TMP/$NAME-$VERSION
+   
+   #	sed -i '/def add_multiarch_paths/a \        return' setup.py
+   
+   ./configure --prefix=/tools --without-ensurepip
+
+    for m in _struct binascii unicodedata _posixsubprocess math pyexpat _md5 _sha1 _sha256 _sha512 select _random _socket zlib fcntl; do 
+      sed -i "s/^#\(${m}\)/\1/" Modules/Setup; 
+    done
+
+	make
+	make install
+	
+	}
+} 2>&1 | tee $LOG/$filename.log
+    
+[ $PIPESTATUS = 0 ] && echo "$NAME-$VERSION" > /tools/$filename || exit $PIPESTATUS
+
+rm -fr $TMP

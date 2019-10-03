@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -e
+
+. /etc/pkg/pkg.conf
+. /var/lib/pkg/functions
+
+name=w3m
+version=0.5.3-git20190105
+
+url=https://github.com/tats/w3m/archive/v0.5.3+git20190105.tar.gz
+
+fetch $url
+
+rm -fr $WORK_DIR/$name-$version
+tar -xvf $SOURCE_DIR/$(basename $url) -C $WORK_DIR
+
+cd $WORK_DIR/$name-$version
+{ time \
+   {
+   	cp gc-6.1/include/gc.h /usr/include
+	./configure
+	make
+	make install
+
+  }
+} 2>&1 | tee -a $LOG_DIR/$name-$version.log
+
+if [ $PIPESTATUS -ne 0 ]; then exit 1; fi;
+
+rm -fr $WORK_DIR/$name-$version
+
+registerpkg $name $version
+
+exit 0

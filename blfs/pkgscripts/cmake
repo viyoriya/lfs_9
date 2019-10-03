@@ -1,0 +1,41 @@
+#!/bin/bash
+
+set -e
+
+. /etc/pkg/pkg.conf
+. /var/lib/pkg/functions
+
+name=$(basename $0)
+version=$CMAKE_VER
+
+url=https://cmake.org/files/v3.15/cmake-$version.tar.gz
+fetch $url
+
+ rm -fr $WORK_DIR/$name-$version
+ tar -xvf $SOURCE_DIR/$(basename $url) -C $WORK_DIR
+
+cd $WORK_DIR/$name-$version
+{ time \
+   {
+
+    sed -i '/"lib64"/s/64//' Modules/GNUInstallDirs.cmake &&
+
+	./bootstrap --prefix=/usr        \
+	            --system-libs        \
+	            --mandir=/share/man  \
+	            --no-system-jsoncpp  \
+	            --no-system-librhash \
+	            --docdir=/share/doc/cmake-3.15.3 
+	make
+	make install
+
+   }
+} 2>&1 | tee -a $LOG_DIR/$(basename $0).log
+
+if [ $PIPESTATUS -ne 0 ]; then exit 1; fi;
+
+rm -fr $WORK_DIR/$name-$version
+
+registerpkg $(basename $0) $version
+
+exit 0

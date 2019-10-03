@@ -1,0 +1,31 @@
+#!/bin/bash
+
+set -e
+
+. /etc/pkg/pkg.conf
+. /var/lib/pkg/functions
+
+name=$(basename $0)
+version=$MELD_VER
+
+url=https://download.gnome.org/sources/meld/3.20/meld-$version.tar.xz
+
+fetch $url
+
+rm -fr $WORK_DIR/$name-$version
+tar -xvf $SOURCE_DIR/$(basename $url) -C $WORK_DIR
+
+cd $WORK_DIR/$name-$version
+{ time \
+   {
+	python setup.py install
+   }
+} 2>&1 | tee -a $LOG_DIR/$name-$version.log
+
+if [ $PIPESTATUS -ne 0 ]; then exit 1; fi;
+
+rm -fr $WORK_DIR/$name-$version
+
+registerpkg $name $version
+
+exit 0

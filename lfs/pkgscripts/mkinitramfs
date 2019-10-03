@@ -1,0 +1,29 @@
+#!/bin/bash
+
+set -e
+
+. /etc/pkg/pkg.conf
+. /var/lib/pkg/functions
+
+name=mkinitramfs
+version=1.0
+
+cd $WORK_DIR/$name
+{ time \
+   {
+	./INSTALL.sh
+
+	if [ $(type -p mkinitramfs) ]; then
+		kernver=$(file /boot/vmlinuz-$LINUX_VER  | cut -d ' ' -f9)
+		mkinitramfs -k $kernver -o /boot/initrd-$LINUX_VER.img
+	fi
+   }
+} 2>&1 | tee -a $LOG_DIR/$name.log
+
+if [ $PIPESTATUS -ne 0 ]; then exit 1; fi;
+
+rm -fr $WORK_DIR/$name
+
+registerpkg $name $version
+
+exit 0
