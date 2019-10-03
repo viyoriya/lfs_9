@@ -35,6 +35,14 @@ Observations
 
 start installing from 01-* script and script 05-* is optional.
 
+After installation 
+1. update /etc/fstab
+2. add wpa_supplicant.conf in /etc/wpa_supplicant/ (little tricky refer Arch wiki)
+3. update/create xorg.conf in /etc/X11/ for display.
+4. end of lfs install you need to provide root password else you need to update it on first login.
+5. create user and add the user in wheel group 
+6. I did add screen, byobu and tmux once everything good download and install dwm its fast and easy setup
+7. Added ncdu,ranger,vim,nano all are cli based. (its very minimal no GUI)
 
 # lfs-scripts
 
